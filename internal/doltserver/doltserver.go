@@ -735,9 +735,11 @@ func FlushWorkingSet(host string, port int) error {
 
 	var flushed int
 	for _, dbName := range databases {
+		// Escape backticks in database name to prevent SQL injection (` → ``)
+		safeName := strings.ReplaceAll(dbName, "`", "``")
 		// Check for uncommitted changes via dolt_status
 		var hasChanges bool
-		row := db.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) > 0 FROM `%s`.dolt_status", dbName))
+		row := db.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) > 0 FROM `%s`.dolt_status", safeName))
 		if err := row.Scan(&hasChanges); err != nil {
 			// dolt_status may not exist for non-beads databases; skip
 			continue
@@ -747,7 +749,7 @@ func FlushWorkingSet(host string, port int) error {
 		}
 
 		// Commit all uncommitted changes
-		_, err := db.ExecContext(ctx, fmt.Sprintf("USE `%s`", dbName))
+		_, err := db.ExecContext(ctx, fmt.Sprintf("USE `%s`", safeName))
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "flush: failed to USE %s: %v\n", dbName, err)
 			continue
