@@ -221,7 +221,9 @@ func fetchLatestGitHubRelease() (string, error) {
 		return "", fmt.Errorf("github api returned status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	// Limit response body to 1MB to prevent OOM from malformed responses.
+	const maxResponseSize = 1 * 1024 * 1024
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
 	}
