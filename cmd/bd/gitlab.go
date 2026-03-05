@@ -125,7 +125,10 @@ func generateIssueID(prefix string) string {
 	timestamp := time.Now().UnixNano() / 1000000 // milliseconds
 	// Add random bytes to prevent collision on restart
 	randBytes := make([]byte, 4)
-	_, _ = rand.Read(randBytes)
+	if _, err := rand.Read(randBytes); err != nil {
+		// Fallback: use counter and timestamp only (still unique within a single process)
+		return fmt.Sprintf("%s-%d-%d", prefix, timestamp, counter)
+	}
 	return fmt.Sprintf("%s-%d-%d-%x", prefix, timestamp, counter, randBytes)
 }
 

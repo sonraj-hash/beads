@@ -289,14 +289,18 @@ func restoreTableRow(ctx context.Context, db *sql.DB, table string, row map[stri
 	placeholders := make([]string, 0, len(row))
 
 	for col, val := range row {
-		cols = append(cols, "`"+col+"`")
+		// Escape backticks in column names to prevent SQL injection (` → ``)
+		safeCol := strings.ReplaceAll(col, "`", "``")
+		cols = append(cols, "`"+safeCol+"`")
 		placeholders = append(placeholders, "?")
 		vals = append(vals, val)
 	}
 
-	//nolint:gosec // G201: col names come from backup JSONL (our own export)
+	// Escape backticks in table name to prevent SQL injection (` → ``)
+	safeTable := strings.ReplaceAll(table, "`", "``")
+	//nolint:gosec // G201: identifiers are backtick-escaped; values use parameterized placeholders
 	query := fmt.Sprintf("INSERT IGNORE INTO `%s` (%s) VALUES (%s)",
-		table, strings.Join(cols, ", "), strings.Join(placeholders, ", "))
+		safeTable, strings.Join(cols, ", "), strings.Join(placeholders, ", "))
 
 	if _, err := db.ExecContext(ctx, query, vals...); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: failed to restore %s row: %v\n", table, err)

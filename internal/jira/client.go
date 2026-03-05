@@ -335,7 +335,9 @@ func (c *Client) doRequest(ctx context.Context, method, apiURL string, body []by
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	respBody, err := io.ReadAll(resp.Body)
+	// Limit response body to 50MB to prevent OOM from malformed responses.
+	const maxResponseSize = 50 * 1024 * 1024
+	respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}

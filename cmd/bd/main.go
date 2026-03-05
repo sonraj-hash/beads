@@ -397,11 +397,15 @@ var rootCmd = &cobra.Command{
 		// Performance profiling setup
 		if profileEnabled {
 			timestamp := time.Now().Format("20060102-150405")
-			if f, _ := os.Create(fmt.Sprintf("bd-profile-%s-%s.prof", cmd.Name(), timestamp)); f != nil {
+			if f, err := os.Create(fmt.Sprintf("bd-profile-%s-%s.prof", cmd.Name(), timestamp)); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to create CPU profile file: %v\n", err)
+			} else {
 				profileFile = f
 				_ = pprof.StartCPUProfile(f) // Best effort: profiling is a debug tool, failure is non-fatal
 			}
-			if f, _ := os.Create(fmt.Sprintf("bd-trace-%s-%s.out", cmd.Name(), timestamp)); f != nil {
+			if f, err := os.Create(fmt.Sprintf("bd-trace-%s-%s.out", cmd.Name(), timestamp)); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to create trace file: %v\n", err)
+			} else {
 				traceFile = f
 				_ = trace.Start(f) // Best effort: profiling is a debug tool, failure is non-fatal
 			}
